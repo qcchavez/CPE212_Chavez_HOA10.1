@@ -1,0 +1,12 @@
+[Ubuntu1]
+#Server 1
+192.168.56.116
+
+[Ubuntu2]
+#Server2
+192.168.56.115
+
+[CentOS]
+#CentOS 7 with GUI
+192.168.56.119 ansible_user=cchavez
+
