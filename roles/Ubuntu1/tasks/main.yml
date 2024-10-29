@@ -1,9 +1,57 @@
 ---
+- name: Add GPG key for Elastic APT repository
+  apt_key:
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    state: present
+  when: ansible_distribution == "Ubuntu"
 
-- name: Install required package
+- name: Add Kibana APT repository
+  apt_repository:
+    repo: "deb https://artifacts.elastic.co/packages/7.x/apt stable main"
+    state: present
+  when: ansible_distribution == "Ubuntu"
+
+- name: Install specific version of Kibana
   apt:
-    name: kibana
-    state: latest
+    name: "kibana=7.17.25"
+    state: present
+  when: ansible_distribution == "Ubuntu"
+
+- name: Create directory for Kibana systemd override
+  file:
+    path: /etc/systemd/system/kibana.service.d
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  when: ansible_distribution == "Ubuntu"
+
+- name: Check if the directory was created
+  stat:
+    path: /etc/systemd/system/kibana.service.d
+  register: kibana_override_dir
+
+- debug:
+    msg: "Directory exists: {{ kibana_override_dir.stat.exists }}"
+
+- name: Create Kibana service override configuration
+  file:
+    path: /etc/systemd/system/kibana.service.d/override.conf
+    state: touch  # Ensures the file exists
+    owner: root
+    group: root
+    mode: '0644'
+  when: ansible_distribution == "Ubuntu"
+
+- name: Configure Kibana (Setting OpenSSL Legacy Provider)
+  blockinfile:
+    path: /etc/systemd/system/kibana.service.d/override.conf
+    block: |
+      [Service]
+      Environment=NODE_OPTIONS=--openssl-legacy-provider
+    owner: root
+    group: root
+    mode: '0644'
   when: ansible_distribution == "Ubuntu"
 
 - name: Configure Kibana
@@ -12,9 +60,14 @@
     dest: /etc/kibana/kibana.yml
   when: ansible_distribution == "Ubuntu"
 
+- name: Reload systemd
+  command: systemctl daemon-reload
+  when: ansible_distribution == "Ubuntu"
+
 - name: Enable Kibana service
   service:
     name: kibana
     state: restarted
-    enabled: true
+  become: yes
   when: ansible_distribution == "Ubuntu"
+

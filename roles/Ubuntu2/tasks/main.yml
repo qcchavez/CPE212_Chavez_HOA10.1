@@ -5,15 +5,33 @@
     state: latest
   when: ansible_distribution == "Ubuntu"
 
+- name: Ensure /usr/share/logstash/data directory is writable
+  file:
+    path: /usr/share/logstash/data
+    state: directory
+    mode: '0755'
+    owner: logstash
+    group: logstash
+  when: ansible_distribution == "Ubuntu"
+
 - name: Configure Logstash
   template:
     src: logstash.conf.j2
     dest: /etc/logstash/conf.d/logstash.conf
   when: ansible_distribution == "Ubuntu"
 
+- name: Allow port 9200 through UFW
+  ufw:
+    rule: allow
+    port: "9200"
+    proto: tcp
+  when: ansible_distribution == "Ubuntu"
+
 - name: Enable Logstash service
   service:
     name: logstash
-    state: restarted
-    enabled: true
+    state: started
+    enabled: yes  # Ensures service starts on boot
+  become: yes
   when: ansible_distribution == "Ubuntu"
+

@@ -36,6 +36,16 @@
 - name: Start Elastic Search
   service:
     name: elasticsearch
-    state: started
+    state: restarted
     enabled: yes
   when: ansible_distribution == "CentOS"
+
+- name: Allow port 9200 through the firewall
+  command: firewall-cmd --zone=public --add-port=9200/tcp --permanent
+  register: firewall_result
+  ignore_errors: true
+
+- name: Reload firewall
+  command: firewall-cmd --reload
+  when: firewall_result.changed
+
